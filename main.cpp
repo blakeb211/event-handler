@@ -39,7 +39,7 @@ int main()
 	using std::lock_guard, std::chrono_literals::operator""ms;
 	using std::thread, std::mutex, std::this_thread::sleep_for;
 
-	thread bg_thread{HandleEvents};
+	thread bg_thread{HandleEvents}; // dedicated background thread
 
 	for (int i = 0; i < 100; i++)
 	{

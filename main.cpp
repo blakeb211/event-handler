@@ -3,6 +3,7 @@
 #include <mutex>
 #include <queue>
 #include <thread>
+#include <atomic>
 
 using namespace std;
 using namespace std::chrono_literals;

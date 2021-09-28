@@ -1,53 +1,56 @@
+#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <mutex>
 #include <queue>
 #include <thread>
-#include <atomic>
 
-using namespace std;
-using namespace std::chrono_literals;
+std::mutex g_mutex;
+std::queue<int> g_events;
+std::atomic<bool> g_bg_thread_can_end{false};
 
-mutex g_mutex;
-queue<int> events;
-
-atomic<bool> kill_bg_thread{false};
-
-void DedicatedBackground()
+void HandleEvents()
 {
+	using std::mutex, std::chrono_literals::operator""ms;
+	using std::this_thread::sleep_for, std::lock_guard, std::cout;
+
 	for (;;)
 	{
 		{
 			const lock_guard<mutex> lock(g_mutex);
-			if (!events.empty())
+			if (!g_events.empty())
 			{
-				auto result = events.front();
+				auto result = g_events.front();
 				cout << result << "\n";
-				events.pop();
+				g_events.pop();
 			}
 			else
 			{
-				if (kill_bg_thread)
+				if (g_bg_thread_can_end)
 					break;
 			}
 		}
-		std::this_thread::sleep_for(2ms);
+		sleep_for(2ms);
 	}
 }
 
 int main()
 {
-	std::thread background{DedicatedBackground};
+	using std::lock_guard, std::chrono_literals::operator""ms;
+	using std::thread, std::mutex, std::this_thread::sleep_for;
+
+	thread bg_thread{HandleEvents};
 
 	for (int i = 0; i < 100; i++)
 	{
 		{
 			const lock_guard<mutex> lock(g_mutex);
-			events.push(i);
+			g_events.push(i);
 		}
-		std::this_thread::sleep_for(1ms);
+		sleep_for(1ms);
 	}
-	kill_bg_thread = true;
-	background.join();
+
+	g_bg_thread_can_end = true;
+	bg_thread.join();
 	return 0;
 }
